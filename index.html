@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Zoom-Activated Bar Chart</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJqYWNrYmF1ZXIiLCJhIjoiY2twejZnNjlkMDYwazJ4cWI3dmxlc3ZieiJ9.1SCM6Yq0Gu4D3GFCA38F1g';
+
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v10',
+    center: [0.01, 0.02],  // Adjust to center on bars
+    zoom: 2
+});
+
+map.on('load', () => {
+    map.addSource('bars', {
+        type: 'geojson',
+        data: 'https://github.com.com/SuperBall10000/haha/unitized_bar_chart_zoom_levels.geojson' // Replace with your URL
+    });
+
+    // Add bar unit layer
+    map.addLayer({
+        id: 'bar-units',
+        type: 'fill',
+        source: 'bars',
+        paint: {
+            'fill-color': [
+                'match',
+                ['get', 'bar_id'],
+                1, '#f28cb1',
+                2, '#3bb2d0',
+                3, '#51bbd6',
+                '#ccc'
+            ],
+            'fill-opacity': 0.8
+        },
+        filter: ['<=', ['get', 'zoom_start'], ['zoom']]
+    });
+});
+</script>
+
+</body>
+</html>
