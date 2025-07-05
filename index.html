@@ -1,15 +1,14 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Zoom-Staged Bar Chart (Fixed)</title>
+  <title>Zoom-Staged Bar Chart</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <style>
-    body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
   </style>
 </head>
 <body>
@@ -20,45 +19,46 @@
 mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJqYWNrYmF1ZXIiLCJhIjoiY2twejZnNjlkMDYwazJ4cWI3dmxlc3ZieiJ9.1SCM6Yq0Gu4D3GFCA38F1g';
 
 const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/light-v10',
-    center: [0.02, 0.05],
-    zoom: 2
+  container: 'map',
+  style: 'mapbox://styles/mapbox/light-v10',
+  center: [0.02, 0.05],
+  zoom: 2
 });
 
 map.on('load', () => {
-    map.addSource('bars', {
-        type: 'geojson',
-        data: 'https://superball10000.github.io/haha/zoom_stage_corrected_bars.geojson'
-    });
+  console.log('Map loaded, fetching data...');
+  map.addSource('bars', {
+    type: 'geojson',
+    data: 'https://superball10000.github.io/haha/zoom_stage_corrected_bars.geojson'
+  });
 
-    map.addLayer({
-        id: 'bar-units',
-        type: 'fill',
-        source: 'bars',
-        paint: {
-            'fill-color': [
-                'match',
-                ['get', 'bar_id'],
-                1, '#f28cb1',
-                2, '#3bb2d0',
-                3, '#51bbd6',
-                4, '#f1f075',
-                5, '#223b53',
-                '#cccccc'
-            ],
-            'fill-outline-color': '#000000',
-            'fill-opacity': 0.9
-        }
-        ]
-    });
+  map.addLayer({
+    id: 'bar-units',
+    type: 'fill',
+    source: 'bars',
+    paint: {
+      'fill-color': ['match',
+        ['get', 'bar_id'],
+        1, '#f28cb1',
+        2, '#3bb2d0',
+        3, '#51bbd6',
+        4, '#f1f075',
+        5, '#223b53',
+        '#cccccc'
+      ],
+      'fill-outline-color': '#000',
+      'fill-opacity': 0.9
+    },
+    filter: ['all',
+      ['<=', ['get', 'zoom_min'], ['zoom']],
+      ['>=', ['get', 'zoom_max'], ['zoom']]
+    ]
+  });
 
-    map.fitBounds([[0, 0], [0.08, 0.2]]);
+  map.on('error', e => console.error('Mapbox error:', e.error));
+  map.on('zoomend', () => console.log('Zoom changed to:', map.getZoom()));
 });
 
-  map.on('error', (e) => {
-  console.error('Mapbox error:', e.error);
-});
 </script>
 
 </body>
