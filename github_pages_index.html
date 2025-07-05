@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Bar Chart with Mapbox</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .zoom-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            z-index: 1000;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .bar-info {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .bar-1 { background: rgba(255, 107, 107, 0.2); }
+        .bar-2 { background: rgba(78, 205, 196, 0.2); }
+        .bar-3 { background: rgba(69, 183, 209, 0.2); }
+        .bar-4 { background: rgba(150, 206, 180, 0.2); }
+        .bar-5 { background: rgba(255, 234, 167, 0.2); }
+        
+        .token-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 2000;
+            max-width: 400px;
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="token-warning" class="token-warning">
+        <h3>⚠️ Mapbox Token Required</h3>
+        <p>Please add your Mapbox access token to line 84 of this file.</p>
+        <p>Get your free token at <a href="https://www.mapbox.com/" target="_blank" style="color: #4ECDC4;">mapbox.com</a></p>
+    </div>
+    
+    <div class="info-panel">
+        <h3>Scroll-Animated Bar Chart</h3>
+        <p>Scroll to zoom and watch the bars grow!</p>
+        <div id="bar-status">
+            <div class="bar-info bar-1">Bar 1: <span id="bar1-segments">0</span>/5 segments</div>
+            <div class="bar-info bar-2">Bar 2: <span id="bar2-segments">0</span>/3 segments</div>
+            <div class="bar-info bar-3">Bar 3: <span id="bar3-segments">0</span>/4 segments</div>
+            <div class="bar-info bar-4">Bar 4: <span id="bar4-segments">0</span>/2 segments</div>
+            <div class="bar-info bar-5">Bar 5: <span id="bar5-segments">0</span>/6 segments</div>
+        </div>
+    </div>
+    
+    <div class="zoom-display">
+        Zoom: <span id="zoom-level">1.0</span>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // 🚨 IMPORTANT: Replace with your actual Mapbox access token
+        // Get your free token at: https://www.mapbox.com/
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJqYWNrYmF1ZXIiLCJhIjoiY2twejZnNjlkMDYwazJ4cWI3dmxlc3ZieiJ9.1SCM6Yq0Gu4D3GFCA38F1g';
+        
+        // Check if token is set
+        if (mapboxgl.accessToken === 'YOUR_MAPBOX_ACCESS_TOKEN_HERE') {
+            console.error('Please add your Mapbox access token!');
+            // Keep the warning visible
+        } else {
+            // Hide the warning
+            document.getElementById('token-warning').classList.add('hidden');
+        }
+
+        // Function to update segment counters
+        function updateSegmentCounters(zoom) {
+            const zoomLevel = Math.floor(zoom);
+            
+            // Define bar configurations
+            const barConfigs = {
+                1: { maxSegments: 5, startZoom: 1 },
+                2: { maxSegments: 3, startZoom: 6 },
+                3: { maxSegments: 4, startZoom: 9 },
+                4: { maxSegments: 2, startZoom: 13 },
+                5: { maxSegments: 6, startZoom: 15 }
+            };
+            
+            // Update each bar's segment count
+            Object.keys(barConfigs).forEach(barId => {
+                const config = barConfigs[barId];
+                let segmentCount = 0;
+                
+                if (zoomLevel >= config.startZoom) {
+                    segmentCount = Math.min(
+                        zoomLevel - config.startZoom + 1,
+                        config.maxSegments
+                    );
+                }
+                
+                document.getElementById(`bar${barId}-segments`).textContent = segmentCount;
+            });
+        }
+
+        // Initialize the map
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v10',
+            center: [-73.99, 40.725],
+            zoom: 1,
+            minZoom: 1,
+            maxZoom: 22
+        });
+
+        map.on('load', function() {
+            // Load GeoJSON data from external file
+            fetch('./bar-chart-data.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load GeoJSON data');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Add the data source
+                    map.addSource('bar-chart', {
+                        'type': 'geojson',
+                        'data': data
+                    });
+
+                    // Add layer for each bar with zoom-based filtering
+                    map.addLayer({
+                        'id': 'bar-segments',
+                        'type': 'fill',
+                        'source': 'bar-chart',
+                        'paint': {
+                            'fill-color': [
+                                'case',
+                                ['==', ['get', 'bar_id'], 1], '#FF6B6B',
+                                ['==', ['get', 'bar_id'], 2], '#4ECDC4',
+                                ['==', ['get', 'bar_id'], 3], '#45B7D1',
+                                ['==', ['get', 'bar_id'], 4], '#96CEB4',
+                                ['==', ['get', 'bar_id'], 5], '#FFEAA7',
+                                '#FFFFFF'
+                            ],
+                            'fill-opacity': 0.8
+                        },
+                        'filter': [
+                            'all',
+                            ['>=', ['zoom'], ['get', 'min_zoom']],
+                            ['<=', ['zoom'], ['get', 'max_zoom']]
+                        ]
+                    });
+
+                    // Add outline layer
+                    map.addLayer({
+                        'id': 'bar-outlines',
+                        'type': 'line',
+                        'source': 'bar-chart',
+                        'paint': {
+                            'line-color': '#FFFFFF',
+                            'line-width': 1,
+                            'line-opacity': 0.6
+                        },
+                        'filter': [
+                            'all',
+                            ['>=', ['zoom'], ['get', 'min_zoom']],
+                            ['<=', ['zoom'], ['get', 'max_zoom']]
+                        ]
+                    });
+
+                    // Update zoom display and segment counters
+                    function updateDisplay() {
+                        const zoom = map.getZoom();
+                        document.getElementById('zoom-level').textContent = zoom.toFixed(1);
+                        updateSegmentCounters(zoom);
+                    }
+
+                    // Listen for zoom changes
+                    map.on('zoom', updateDisplay);
+                    
+                    // Initial update
+                    updateDisplay();
+                })
+                .catch(error => {
+                    console.error('Error loading GeoJSON data:', error);
+                    alert('Error loading bar chart data. Make sure bar-chart-data.json is in the same directory.');
+                });
+
+            // Add hover effects
+            map.on('mouseenter', 'bar-segments', function(e) {
+                map.getCanvas().style.cursor = 'pointer';
+                
+                // Get the bar info
+                const barId = e.features[0].properties.bar_id;
+                const segmentLevel = e.features[0].properties.segment_level;
+                
+                // Create popup
+                const popup = new mapboxgl.Popup({
+                    closeButton: false,
+                    closeOnClick: false
+                })
+                .setLngLat(e.lngLat)
+                .setHTML(`
+                    <div style="background: #1a1a1a; color: white; padding: 10px; border-radius: 5px;">
+                        <strong>Bar ${barId}</strong><br>
+                        Segment ${segmentLevel}
+                    </div>
+                `)
+                .addTo(map);
+                
+                // Store popup reference
+                map._currentPopup = popup;
+            });
+
+            map.on('mouseleave', 'bar-segments', function() {
+                map.getCanvas().style.cursor = '';
+                
+                // Remove popup
+                if (map._currentPopup) {
+                    map._currentPopup.remove();
+                    map._currentPopup = null;
+                }
+            });
+        });
+
+        // Add scroll wheel zoom control
+        map.scrollZoom.setWheelZoomRate(1/200); // Slower zoom for better control
+        
+        // Disable rotation
+        map.dragRotate.disable();
+        map.touchZoomRotate.disableRotation();
+    </script>
+</body>
+</html>
