@@ -223,6 +223,9 @@
                     // Initial update
                     updateDisplay();
                 })
+
+                map.on('zoom', map.setCenter([-73.99, 40.725]); // Keep map centered on bars
+                    });
                 .catch(error => {
                     console.error('Error loading GeoJSON data:', error);
                     alert('Error loading bar chart data. Make sure bar-chart-data.json is in the same directory.');
