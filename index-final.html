@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Bar Chart with Mapbox</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: sans-serif;
+        }
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+        .zoom-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="zoom-display">Zoom: <span id="zoom-level">13.0</span></div>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic3VwZXJqYWNrYmF1ZXIiLCJhIjoiY2twejZnNjlkMDYwazJ4cWI3dmxlc3ZieiJ9.1SCM6Yq0Gu4D3GFCA38F1g';
+
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v10',
+            center: [-73.99, 40.725],
+            zoom: 13,
+            minZoom: 13,
+            maxZoom: 14
+        });
+
+        map.on('load', () => {
+            fetch('./bar-chart-final.json')
+                .then(res => res.json())
+                .then(data => {
+                    map.addSource('bars', {
+                        type: 'geojson',
+                        data: data
+                    });
+
+                    map.addLayer({
+                        id: 'bar-fill',
+                        type: 'fill',
+                        source: 'bars',
+                        paint: {
+                            'fill-color': [
+                                'match',
+                                ['get', 'bar_id'],
+                                1, '#FF6B6B',
+                                2, '#4ECDC4',
+                                3, '#45B7D1',
+                                4, '#96CEB4',
+                                5, '#FFEAA7',
+                                '#FFFFFF'
+                            ],
+                            'fill-opacity': 0.8
+                        },
+                        filter: [
+                            'all',
+                            ['<=', ['get', 'min_zoom'], ['zoom']],
+                            ['>=', ['get', 'max_zoom'], ['zoom']]
+                        ]
+                    });
+
+                    map.addLayer({
+                        id: 'bar-outline',
+                        type: 'line',
+                        source: 'bars',
+                        paint: {
+                            'line-color': '#fff',
+                            'line-width': 1
+                        },
+                        filter: [
+                            'all',
+                            ['<=', ['get', 'min_zoom'], ['zoom']],
+                            ['>=', ['get', 'max_zoom'], ['zoom']]
+                        ]
+                    });
+
+                    const zoomDisplay = document.getElementById('zoom-level');
+                    map.on('zoom', () => {
+                        zoomDisplay.textContent = map.getZoom().toFixed(2);
+                    });
+                });
+        });
+    </script>
+</body>
+</html>
