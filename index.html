@@ -58,6 +58,10 @@ map.on('load', () => {
 
     map.fitBounds([[0, 0], [0.08, 0.2]]);
 });
+
+  map.on('error', (e) => {
+  console.error('Mapbox error:', e.error);
+});
 </script>
 
 </body>
